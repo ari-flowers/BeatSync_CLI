@@ -1,8 +1,16 @@
+"""
+Entry point for BeatSync CLI tool.
+Handles user input and coordinates comparison logic.
+"""
+
 from spotify_api.auth import get_spotify_client
 from spotify_api.playlists import fetch_playlist_tracks, fetch_liked_songs, load_liked_songs
 from local_library.file_scanner import scan_local_folder
 from compare.compare_tracks import compare_tracks
 from utils.helpers import export_to_csv
+from config import DEFAULT_MATCH_THRESHOLD
+
+threshold = DEFAULT_MATCH_THRESHOLD
 
 def display_tracks(tracks, title, total):
     print(f"\n🎵 {title} ({len(tracks)}/{total}):")
@@ -26,10 +34,6 @@ def main():
     sp = get_spotify_client()
     playlist_input = input("Enter Spotify Playlist URL, ID, or 'liked' for Liked Songs: ").strip()
     folder_path = input("Enter path to your local music folder: ").strip()
-
-    # Default threshold set to 85 (commented out user input)
-    threshold = 85  
-    # threshold = int(input("Enter match threshold (default 85): ") or 85)
 
     # Fetch Spotify tracks
     spotify_tracks = fetch_tracks(sp, playlist_input)

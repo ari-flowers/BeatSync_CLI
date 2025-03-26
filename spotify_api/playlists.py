@@ -19,7 +19,10 @@ def load_liked_songs():
     return tracks
 
 def fetch_liked_songs(sp, save=False):
-    """Fetch Spotify Liked Songs with progress bar. Optionally save to file."""
+    """
+    Fetch Spotify Liked Songs with a progress bar.
+    Each track will include a 'playlist' key set to "Liked Songs" for consistency.
+    """
     limit = 50
     offset = 0
 
@@ -37,7 +40,8 @@ def fetch_liked_songs(sp, save=False):
             for item in results['items']:
                 track = item['track']
                 artists = [artist['name'] for artist in track['artists']]
-                tracks.append({'name': track['name'], 'artists': artists})
+                # Attach playlist name for consistency
+                tracks.append({'name': track['name'], 'artists': artists, 'playlist': "Liked Songs"})
                 pbar.update(1)
             results = sp.next(results) if results['next'] else None
 
@@ -49,10 +53,17 @@ def fetch_liked_songs(sp, save=False):
     return tracks
 
 def fetch_playlist_tracks(sp, playlist_id):
-    """Fetch Spotify playlist tracks with progress bar."""
+    """
+    Fetch Spotify playlist tracks with a progress bar.
+    Each track will include a 'playlist' key containing the playlist name.
+    """
     limit = 100
     offset = 0
     tracks = []
+
+    # Retrieve the playlist object to extract the playlist name
+    playlist_obj = sp.playlist(playlist_id)
+    playlist_name = playlist_obj.get('name', 'Unknown Playlist')
 
     print("\n🔎 Fetching Spotify playlist tracks...")
     results = sp.playlist_items(playlist_id, limit=limit, offset=offset)
@@ -67,7 +78,8 @@ def fetch_playlist_tracks(sp, playlist_id):
             for item in results['items']:
                 track = item['track']
                 artists = [artist['name'] for artist in track['artists']]
-                tracks.append({'name': track['name'], 'artists': artists})
+                # Attach playlist name to each track
+                tracks.append({'name': track['name'], 'artists': artists, 'playlist': playlist_name})
                 pbar.update(1)
             results = sp.next(results) if results['next'] else None
 

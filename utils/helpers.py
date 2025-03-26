@@ -1,7 +1,7 @@
 import unicodedata
 import re
-import csv
 import os
+import csv
 
 def export_to_csv(matched_tracks, missing_tracks, total_tracks, filename="track_report.csv"):
     # Ensure the filename ends with .csv
@@ -14,24 +14,27 @@ def export_to_csv(matched_tracks, missing_tracks, total_tracks, filename="track_
     with open(file_path, mode='w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
 
-        # Missing Tracks Section with "Source" column
-        writer.writerow([f"============ MISSING TRACKS ({len(missing_tracks)}/{total_tracks})============", "================"])
-        writer.writerow(["Track Name", "Artist", "Source"])
+        # Missing Tracks Section with 4 columns: Track Name, Artist, Source, Playlist
+        writer.writerow([f"============ MISSING TRACKS ({len(missing_tracks)}/{total_tracks})============", "================", "========", "========"])
+        writer.writerow(["Track Name", "Artist", "Source", "Playlist"])
         if missing_tracks:
             for track in missing_tracks:
-                writer.writerow([track.get('name', 'Unknown'),
-                                 ", ".join(track.get('artists', [])),
-                                 "Spotify"])
+                writer.writerow([
+                    track.get('name', 'Unknown'),
+                    ", ".join(track.get('artists', [])),
+                    "Spotify",
+                    track.get('playlist', 'Unknown')
+                ])
         else:
-            writer.writerow(["No missing tracks found", "", ""])
+            writer.writerow(["No missing tracks found", "", "", ""])
             
         # Blank rows as separator
         writer.writerow([""])
         writer.writerow([""])
         
-        # Matched Tracks Section with "Audio Quality" column
-        writer.writerow([f"============ MATCHED TRACKS ({len(matched_tracks)}/{total_tracks})============", "================"])
-        writer.writerow(["Track Name", "Artist", "Audio Quality"])
+        # Matched Tracks Section with 4 columns: Track Name, Artist, Audio Quality, Playlist
+        writer.writerow([f"============ MATCHED TRACKS ({len(matched_tracks)}/{total_tracks})============", "================", "========", "========"])
+        writer.writerow(["Track Name", "Artist", "Audio Quality", "Playlist"])
         if matched_tracks:
             for track in matched_tracks:
                 if 'audio' in track:
@@ -42,13 +45,17 @@ def export_to_csv(matched_tracks, missing_tracks, total_tracks, filename="track_
                         quality_str = audio.get('format', 'Unknown')
                 else:
                     quality_str = "N/A"
-                writer.writerow([track.get('name', 'Unknown'),
-                                 ", ".join(track.get('artists', [])),
-                                 quality_str])
+                writer.writerow([
+                    track.get('name', 'Unknown'),
+                    ", ".join(track.get('artists', [])),
+                    quality_str,
+                    track.get('playlist', 'Unknown')
+                ])
         else:
-            writer.writerow(["No matched tracks found", "", ""])
+            writer.writerow(["No matched tracks found", "", "", ""])
 
     print(f"\n✅ Exported to: {file_path}")
+
 def normalize_string(text):
     """Normalize text by lowering case, removing accents, and stripping special characters."""
     if not text:

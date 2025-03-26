@@ -9,7 +9,6 @@ from config import DEFAULT_MATCH_THRESHOLD
 def display_tracks(tracks, title, total):
     print(f"\n🎵 {title} ({len(tracks)}/{total}):")
     for i, track in enumerate(tracks, 1):
-        # For matched tracks, audio info may be merged, so try to show it if available
         audio = track.get('audio', {})
         if audio.get('format') == 'MP3' and audio.get('bitrate') is not None:
             quality_str = f"{audio['bitrate']}kbps"
@@ -17,7 +16,8 @@ def display_tracks(tracks, title, total):
             quality_str = audio.get('format', 'N/A')
         print(f"{i}. {track.get('name', 'Unknown')} by {', '.join(track.get('artists', []))} | Audio Quality: {quality_str}")
 
-def fetch_tracks(sp, playlist_input):
+def fetch_tracks_for_input(sp, playlist_input):
+    """Handles a single playlist input (or liked songs) and returns the corresponding track list."""
     if playlist_input.lower().startswith("liked"):
         if "--updatesaved" in playlist_input:
             print("\n🔄 Updating saved Liked Songs...")
@@ -27,11 +27,25 @@ def fetch_tracks(sp, playlist_input):
         else:
             return fetch_liked_songs(sp)
     else:
-        print("\n🔎 Fetching Spotify playlist...")
+        print(f"\n🔎 Fetching Spotify playlist: {playlist_input}")
         return fetch_playlist_tracks(sp, playlist_input)
 
+def fetch_tracks(sp, playlist_input):
+    """
+    If the input contains a comma, treat it as multiple playlist entries.
+    Otherwise, process the single input.
+    """
+    if ',' in playlist_input:
+        playlist_list = [p.strip() for p in playlist_input.split(',')]
+        combined_tracks = []
+        for p in playlist_list:
+            tracks = fetch_tracks_for_input(sp, p)
+            combined_tracks.extend(tracks)
+        return combined_tracks
+    else:
+        return fetch_tracks_for_input(sp, playlist_input)
+
 def main():
-    # Set up argument parsing for filtering
     parser = argparse.ArgumentParser(description="BeatSync CLI Tool")
     parser.add_argument("--lossless-only", action="store_true", help="Only include lossless local files")
     parser.add_argument("--mp3-only", action="store_true", help="Only include MP3 local files")
@@ -39,12 +53,12 @@ def main():
     args = parser.parse_args()
 
     sp = get_spotify_client()
-    playlist_input = input("Enter Spotify Playlist URL, ID, or 'liked' for Liked Songs: ").strip()
+    playlist_input = input("Enter Spotify Playlist URL, ID, or 'liked' for Liked Songs (comma-separated for multiple): ").strip()
     folder_path = input("Enter path to your local music folder: ").strip()
 
     threshold = DEFAULT_MATCH_THRESHOLD
 
-    # Fetch Spotify tracks
+    # Fetch Spotify tracks from one or more playlists
     spotify_tracks = fetch_tracks(sp, playlist_input)
     total_tracks = len(spotify_tracks)
     print(f"✅ Found {total_tracks} tracks in Spotify collection.")
@@ -54,8 +68,7 @@ def main():
     print(f"\n✅ Found {len(local_tracks)} tracks in local folder.")
 
     # Apply filtering based on CLI flags
-    filtered_local_tracks = local_tracks  # start with all local tracks
-
+    filtered_local_tracks = local_tracks
     if args.lossless_only:
         filtered_local_tracks = [track for track in filtered_local_tracks if track.get('audio', {}).get('lossless')]
     if args.mp3_only:
@@ -66,20 +79,15 @@ def main():
             if track.get('audio', {}).get('format') != 'MP3' or 
                (track.get('audio', {}).get('bitrate') is not None and track.get('audio', {}).get('bitrate') >= args.min_bitrate)
         ]
-
     print(f"\n✅ After filtering, {len(filtered_local_tracks)} local tracks remain.")
 
     # Compare tracks using the filtered local tracks
     matched_tracks, missing_tracks = compare_tracks(spotify_tracks, filtered_local_tracks, threshold)
 
-    # Display missing tracks
     display_tracks(missing_tracks, "Missing Tracks", total_tracks)
-
-    # Optionally display matched tracks
     if matched_tracks and input("\nWould you like to see the matched tracks? (y/n): ").strip().lower() == 'y':
         display_tracks(matched_tracks, "Matched Tracks", total_tracks)
 
-    # Optionally export to CSV
     if input("\nExport results to CSV? (y/n): ").strip().lower() == 'y':
         filename = input("Enter filename (default: track_report.csv): ").strip() or "track_report.csv"
         export_to_csv(matched_tracks, missing_tracks, total_tracks, filename)

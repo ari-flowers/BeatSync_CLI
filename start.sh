@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Navigate to the script directory
 cd "$(dirname "$0")"
 
@@ -8,5 +10,5 @@ if [[ "$VIRTUAL_ENV" == "" ]]; then
 
 fi
 
-# Run the tool
-python main.py
+# Run the tool and forward any arguments passed to the script
+python main.py "$@"
